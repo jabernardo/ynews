@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { Box } from "../components";
 import axios from "axios";
+
+const store = require("store");
+const expirePlugin = require('store/plugins/expire')
+
+store.addPlugin(expirePlugin)
 
 export default function({
   id
 }) {
-  const [ latestNews, setLatestNews ] = useState([]);
+  const [ latestNews, setLatestNews ] = useState(store.get("ynews") || []);
 
   const getNewsInfo = (newsIds) => {
     newsIds.map(id => {
@@ -20,6 +25,10 @@ export default function({
     });
   }
 
+  useEffect(() => {
+    store.set('ynews', latestNews, new Date().getTime() + 3000);
+  }, [ latestNews ]);
+
   const getLatestNews = () => {
     axios.get("https://hacker-news.firebaseio.com/v0/newstories.json?limit=50")
       .then(resp => {
@@ -33,9 +42,33 @@ export default function({
   const getNewsList = () => {
     return latestNews.map(data => {
       return  (
-        <li key={data.id}>
-          <a href={data.url} target="_blank">{ data.title }</a>( { data.score } ) -- by { data.by }
-        </li> 
+        <Fragment key={data.id}>
+          <li>
+            <a href={data.url} target="_blank">{ data.title }</a>( { data.score } ) -- by { data.by }
+          </li>
+          <style jsx>{`
+            li {
+              padding: 1rem;
+              border-radius: 8px;
+              border-bottom: 2px dashed #eee;
+            }
+
+            li:hover {
+              background: #eee;
+              border: 1px solid #1eaedb;
+            }
+
+            a {
+              display: block;
+            }
+
+            li:hover a,
+            a:hover {
+              text-decoration: none;
+            }
+          `}
+          </style>
+        </Fragment>
       );
     })
   }
@@ -48,8 +81,17 @@ export default function({
   }, []);
 
   return (
-    <Box key={ id || "News" }>
-      <ul>{ getNewsList() }</ul>
-    </Box>
+    <Fragment>
+      <Box key={ id || "News" }>
+        <ul key="ycombinews">{ getNewsList() }</ul>
+      </Box>
+      <style jsx>{`
+        ul {
+          list-style: none;
+          font-size: 2rem;
+        }
+      `}
+      </style>
+    </Fragment>
   );
 }
